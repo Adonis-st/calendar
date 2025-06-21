@@ -16,16 +16,132 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
+  useDraggable,
+  useDroppable,
 } from "@dnd-kit/core";
-import { CalendarEvent } from "@/types/calendar";
+import { CalendarEvent, DayEvent } from "@/types/calendar";
 
 interface DayViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onEventDrop: (eventId: string, newStart: Date, newEnd: Date) => void;
+  onEventResize?: (eventId: string, newStart: Date, newEnd: Date) => void;
+}
+
+// Draggable Event Component
+function DraggableEvent({
+  event,
+  dayEvent,
+  onClick,
+  onResize,
+}: {
+  event: CalendarEvent;
+  dayEvent: DayEvent;
+  onClick: () => void;
+  onResize?: (eventId: string, newStart: Date, newEnd: Date) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: event.id,
+      data: {
+        event,
+        type: "event",
+      },
+    });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined;
+
+  const handleResizeStart = (
+    e: React.MouseEvent | React.TouchEvent,
+    direction: "start" | "end"
+  ) => {
+    e.stopPropagation();
+    // This would be implemented with a resize library like react-resizable-panels
+    // For now, we'll just show the cursor
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      style={{
+        ...style,
+        top: dayEvent.top,
+        height: dayEvent.height,
+        backgroundColor: event.color + "20",
+        color: event.color,
+        border: `1px solid ${event.color}`,
+        opacity: isDragging ? 0.5 : 1,
+        touchAction: "none",
+        userSelect: "none",
+      }}
+      className={`absolute left-1 right-1 rounded p-2 text-sm cursor-move z-20 shadow-sm group min-h-[32px] touch-target ${
+        isDragging ? "dragging" : ""
+      }`}
+      onClick={onClick}
+    >
+      <div className="font-medium truncate select-none">{event.title}</div>
+      <div className="text-xs opacity-75 mt-1 select-none">
+        {format(event.start, "HH:mm")} - {format(event.end, "HH:mm")}
+      </div>
+
+      {/* Mobile drag indicator */}
+      <div className="absolute top-1 right-1 w-2 h-2 bg-current opacity-50 rounded-full md:hidden" />
+
+      {/* Resize handles */}
+      {onResize && (
+        <>
+          <div
+            className="absolute top-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+            onMouseDown={(e) => handleResizeStart(e, "start")}
+            onTouchStart={(e) => handleResizeStart(e, "start")}
+          />
+          <div
+            className="absolute bottom-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+            onMouseDown={(e) => handleResizeStart(e, "end")}
+            onTouchStart={(e) => handleResizeStart(e, "end")}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+// Droppable Time Slot Component
+function DroppableTimeSlot({
+  hour,
+  children,
+}: {
+  hour: number;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `day-${hour}`,
+    data: {
+      hour,
+      type: "timeSlot",
+    },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`h-15 border-b border-gray-100 relative ${
+        isOver ? "bg-blue-50" : ""
+      } touch-manipulation`}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function DayView({
@@ -33,12 +149,18 @@ export function DayView({
   events,
   onEventClick,
   onEventDrop,
+  onEventResize,
 }: DayViewProps) {
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
       activationConstraint: {
         distance: 8,
       },
@@ -88,13 +210,13 @@ export function DayView({
     if (!event.over) return;
 
     const eventId = event.active.id as string;
-    const targetHour = event.over.data.current?.hour as number;
+    const dropData = event.over.data.current;
 
-    if (targetHour !== undefined) {
+    if (dropData?.type === "timeSlot" && dropData.hour !== undefined) {
       const eventData = events.find((e) => e.id === eventId);
       if (eventData) {
         const duration = differenceInMinutes(eventData.end, eventData.start);
-        const newStart = addHours(currentDate, targetHour);
+        const newStart = addHours(currentDate, dropData.hour);
         const newEnd = addMinutes(newStart, duration);
         onEventDrop(eventId, newStart, newEnd);
       }
@@ -143,11 +265,7 @@ export function DayView({
         <div className="flex-1 relative">
           {/* Time slots */}
           {timeSlots.map((time, timeIndex) => (
-            <div
-              key={timeIndex}
-              className="h-15 border-b border-gray-100 relative"
-              data-hour={time.getHours()}
-            >
+            <DroppableTimeSlot key={timeIndex} hour={time.getHours()}>
               {/* Current time indicator */}
               {isToday && isSameHour(time, currentTime) && (
                 <div
@@ -155,29 +273,18 @@ export function DayView({
                   style={{ top: getCurrentTimePosition() % 60 }}
                 />
               )}
-            </div>
+            </DroppableTimeSlot>
           ))}
 
           {/* Events */}
           {dayEvents.map((dayEvent) => (
-            <div
+            <DraggableEvent
               key={dayEvent.event.id}
-              className="absolute left-1 right-1 rounded p-2 text-sm cursor-pointer z-20 shadow-sm"
-              style={{
-                top: dayEvent.top,
-                height: dayEvent.height,
-                backgroundColor: dayEvent.event.color + "20",
-                color: dayEvent.event.color,
-                border: `1px solid ${dayEvent.event.color}`,
-              }}
+              event={dayEvent.event}
+              dayEvent={dayEvent}
               onClick={() => onEventClick(dayEvent.event)}
-            >
-              <div className="font-medium truncate">{dayEvent.event.title}</div>
-              <div className="text-xs opacity-75 mt-1">
-                {format(dayEvent.event.start, "HH:mm")} -{" "}
-                {format(dayEvent.event.end, "HH:mm")}
-              </div>
-            </div>
+              onResize={onEventResize}
+            />
           ))}
         </div>
       </div>

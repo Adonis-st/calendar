@@ -8,13 +8,20 @@ import {
   subWeeks,
   addDays,
   subDays,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
 } from "date-fns";
 import { CalendarEvent, CalendarView } from "@/types/calendar";
-import { CalendarToolbar } from "@/components/CalendarToolbar";
+import { EnhancedToolbar } from "@/components/EnhancedToolbar";
 import { MonthView } from "@/components/MonthView";
 import { WeekView } from "@/components/WeekView";
 import { DayView } from "@/components/DayView";
 import { EventModal } from "@/components/EventModal";
+import { SidebarMiniCalendar } from "@/components/SidebarMiniCalendar";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useDesktop } from "@/hooks/useDesktop";
 
 const EVENT_COLORS = [
   "#4285f4", // Blue
@@ -29,6 +36,7 @@ const EVENT_COLORS = [
 
 export function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>("month");
   const [events, setEvents] = useState<CalendarEvent[]>([
     {
@@ -58,6 +66,8 @@ export function Calendar() {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const isDesktop = useDesktop();
+
   const navigateDate = (direction: "prev" | "next") => {
     switch (view) {
       case "month":
@@ -85,8 +95,43 @@ export function Calendar() {
   };
 
   const goToToday = () => {
-    setCurrentDate(new Date());
+    const today = new Date();
+    setCurrentDate(today);
+    setSelectedDate(today);
   };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+
+    // Update current date based on view
+    switch (view) {
+      case "month":
+        setCurrentDate(startOfMonth(date));
+        break;
+      case "week":
+        setCurrentDate(startOfWeek(date));
+        break;
+      case "day":
+        setCurrentDate(date);
+        break;
+    }
+  };
+
+  const handleMonthChange = (direction: "prev" | "next") => {
+    setCurrentDate(
+      direction === "next"
+        ? addMonths(currentDate, 1)
+        : subMonths(currentDate, 1)
+    );
+  };
+
+  // Set up keyboard shortcuts
+  useKeyboardShortcuts({
+    onViewChange: setView,
+    onNavigate: navigateDate,
+    onGoToToday: goToToday,
+    isDesktop,
+  });
 
   const addEvent = (event: Omit<CalendarEvent, "id">) => {
     const newEvent: CalendarEvent = {
@@ -123,6 +168,7 @@ export function Calendar() {
 
   const handleCellClick = (date: Date) => {
     setCurrentDate(date);
+    setSelectedDate(date);
     if (view === "month") {
       setView("day");
     }
@@ -130,6 +176,16 @@ export function Calendar() {
   };
 
   const handleEventDrop = (eventId: string, newStart: Date, newEnd: Date) => {
+    setEvents(
+      events.map((event) =>
+        event.id === eventId
+          ? { ...event, start: newStart, end: newEnd }
+          : event
+      )
+    );
+  };
+
+  const handleEventResize = (eventId: string, newStart: Date, newEnd: Date) => {
     setEvents(
       events.map((event) =>
         event.id === eventId
@@ -157,6 +213,7 @@ export function Calendar() {
             events={events}
             onEventClick={handleEventClick}
             onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
           />
         );
       case "day":
@@ -166,6 +223,7 @@ export function Calendar() {
             events={events}
             onEventClick={handleEventClick}
             onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
           />
         );
       default:
@@ -174,27 +232,44 @@ export function Calendar() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white">
-      <CalendarToolbar
-        currentDate={currentDate}
-        view={view}
-        onViewChange={setView}
-        onNavigate={navigateDate}
-        onGoToToday={goToToday}
-      />
-      <div className="flex-1 overflow-hidden">{renderView()}</div>
-      <EventModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedEvent(null);
-        }}
-        event={selectedEvent}
-        onSave={selectedEvent ? updateEvent : addEvent}
-        onDelete={selectedEvent ? deleteEvent : undefined}
-        currentDate={currentDate}
-        view={view}
-      />
+    <div className="h-screen flex bg-white">
+      {/* Left: Mini Calendar Sidebar (Desktop Only) */}
+      {isDesktop && (
+        <div className="w-64 border-r bg-white z-10 md:block hidden">
+          <SidebarMiniCalendar
+            currentDate={currentDate}
+            selectedDate={selectedDate}
+            events={events}
+            onDateSelect={handleDateSelect}
+            onMonthChange={handleMonthChange}
+          />
+        </div>
+      )}
+
+      {/* Right: Main Calendar View */}
+      <div className="flex-1 relative z-0 flex flex-col">
+        <EnhancedToolbar
+          currentDate={currentDate}
+          view={view}
+          onViewChange={setView}
+          onNavigate={navigateDate}
+          onGoToToday={goToToday}
+          isDesktop={isDesktop}
+        />
+        <div className="flex-1 overflow-hidden">{renderView()}</div>
+        <EventModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedEvent(null);
+          }}
+          event={selectedEvent}
+          onSave={selectedEvent ? updateEvent : addEvent}
+          onDelete={selectedEvent ? deleteEvent : undefined}
+          currentDate={currentDate}
+          view={view}
+        />
+      </div>
     </div>
   );
 }

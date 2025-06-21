@@ -8,7 +8,7 @@ import {
   Calendar,
   Grid3X3,
   Clock,
-  Info,
+  Keyboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { CalendarView } from "@/types/calendar";
 
-interface CalendarToolbarProps {
+interface EnhancedToolbarProps {
   currentDate: Date;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
@@ -29,16 +29,16 @@ interface CalendarToolbarProps {
   isDesktop: boolean;
 }
 
-export function CalendarToolbar({
+export function EnhancedToolbar({
   currentDate,
   view,
   onViewChange,
   onNavigate,
   onGoToToday,
   isDesktop,
-}: CalendarToolbarProps) {
+}: EnhancedToolbarProps) {
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [showMobileHint, setShowMobileHint] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -48,16 +48,8 @@ export function CalendarToolbar({
     checkMobile();
     window.addEventListener("resize", checkMobile);
 
-    // Show mobile hint on first visit
-    const hasSeenHint = localStorage.getItem("calendar-mobile-hint");
-    if (!hasSeenHint && isMobile) {
-      setShowMobileHint(true);
-      setTimeout(() => setShowMobileHint(false), 5000);
-      localStorage.setItem("calendar-mobile-hint", "true");
-    }
-
     return () => window.removeEventListener("resize", checkMobile);
-  }, [isMobile]);
+  }, []);
 
   const getViewTitle = () => {
     switch (view) {
@@ -72,9 +64,14 @@ export function CalendarToolbar({
     }
   };
 
+  const toggleShortcuts = () => {
+    setShowShortcuts(!showShortcuts);
+  };
+
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b bg-white">
+    <div className="relative bg-white border-b z-20">
+      {/* Main toolbar */}
+      <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-4">
           <Button
             variant="outline"
@@ -113,6 +110,18 @@ export function CalendarToolbar({
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* Keyboard shortcuts button for desktop */}
+          {isDesktop && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleShortcuts}
+              className="h-8 w-8 p-0"
+            >
+              <Keyboard className="h-4 w-4" />
+            </Button>
+          )}
+
           <Select
             value={view}
             onValueChange={(value: CalendarView) => onViewChange(value)}
@@ -153,32 +162,13 @@ export function CalendarToolbar({
         </div>
       </div>
 
-      {/* Mobile hint */}
-      {showMobileHint && isMobile && (view === "week" || view === "day") && (
-        <div className="bg-blue-50 border-b border-blue-200 p-3 text-sm text-blue-800 flex items-center space-x-2">
-          <Info className="h-4 w-4 flex-shrink-0" />
-          <span>
-            💡 <strong>Tip:</strong> Long press and drag events to reschedule
-            them
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowMobileHint(false)}
-            className="ml-auto text-blue-600 hover:text-blue-800"
-          >
-            ×
-          </Button>
-        </div>
-      )}
-
-      {/* Desktop keyboard shortcuts hint */}
-      {isDesktop && (
-        <div className="bg-gray-50 border-b border-gray-200 p-2 text-xs text-gray-600 flex items-center justify-center space-x-4">
-          <span>Keyboard shortcuts:</span>
-          <span>
-            M (Month) • W (Week) • D (Day) • T (Today) • ← → (Navigate)
-          </span>
+      {/* Keyboard shortcuts overlay */}
+      {showShortcuts && isDesktop && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-30 bg-white/95 backdrop-blur-sm border rounded-lg shadow-lg px-4 py-2">
+          <div className="text-sm text-gray-700 font-medium">
+            ⌘ Shortcuts: M (Month) • W (Week) • D (Day) • T (Today) • ← →
+            (Navigate)
+          </div>
         </div>
       )}
     </div>
