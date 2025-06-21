@@ -232,10 +232,10 @@ export function Calendar() {
   };
 
   return (
-    <div className="h-screen flex bg-white">
+    <div className="h-screen flex bg-white overflow-hidden">
       {/* Left: Mini Calendar Sidebar (Desktop Only) */}
       {isDesktop && (
-        <div className="w-64 border-r bg-white z-10 md:block hidden">
+        <div className="w-64 border-r bg-white z-10 md:block hidden flex-shrink-0">
           <SidebarMiniCalendar
             currentDate={currentDate}
             selectedDate={selectedDate}
@@ -247,7 +247,7 @@ export function Calendar() {
       )}
 
       {/* Right: Main Calendar View */}
-      <div className="flex-1 relative z-0 flex flex-col">
+      <div className="flex-1 relative z-0 flex flex-col min-w-0">
         <EnhancedToolbar
           currentDate={currentDate}
           view={view}
@@ -256,7 +256,7 @@ export function Calendar() {
           onGoToToday={goToToday}
           isDesktop={isDesktop}
         />
-        <div className="flex-1 overflow-hidden">{renderView()}</div>
+        <div className="flex-1 overflow-hidden p-4">{renderView()}</div>
         <EventModal
           isOpen={isModalOpen}
           onClose={() => {

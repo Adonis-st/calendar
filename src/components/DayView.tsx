@@ -245,9 +245,9 @@ export function DayView({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-full flex">
+      <div className="h-full flex max-w-full">
         {/* Time column */}
-        <div className="w-16 border-r bg-gray-50">
+        <div className="w-16 border-r bg-gray-50 flex-shrink-0">
           <div className="h-12 border-b flex items-center justify-center font-medium">
             {format(currentDate, "EEE, MMM d")}
           </div>
@@ -262,7 +262,7 @@ export function DayView({
         </div>
 
         {/* Main content */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-w-0">
           {/* Time slots */}
           {timeSlots.map((time, timeIndex) => (
             <DroppableTimeSlot key={timeIndex} hour={time.getHours()}>

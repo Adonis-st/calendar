@@ -49,7 +49,7 @@ export function SidebarMiniCalendar({
   const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-6 space-y-4">
       {/* Header with month navigation */}
       <div className="flex items-center justify-between">
         <Button

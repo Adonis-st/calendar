@@ -43,7 +43,7 @@ export function MonthView({
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col max-w-full">
       {/* Header */}
       <div className="grid grid-cols-7 border-b bg-gray-50">
         {weekDays.map((day) => (
@@ -57,7 +57,7 @@ export function MonthView({
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1 grid grid-cols-7 grid-rows-6">
+      <div className="flex-1 grid grid-cols-7 grid-rows-6 min-h-0">
         {days.map((day, index) => {
           const dayEvents = getEventsForDay(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
@@ -83,7 +83,7 @@ export function MonthView({
                 </span>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1 overflow-hidden">
                 {dayEvents.slice(0, 3).map((event) => (
                   <div
                     key={event.id}

@@ -257,9 +257,9 @@ export function WeekView({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-full flex">
+      <div className="h-full flex max-w-full">
         {/* Time column */}
-        <div className="w-16 border-r bg-gray-50">
+        <div className="w-16 border-r bg-gray-50 flex-shrink-0">
           <div className="h-12 border-b"></div>
           {timeSlots.map((time, index) => (
             <div
@@ -272,13 +272,13 @@ export function WeekView({
         </div>
 
         {/* Days columns */}
-        <div className="flex-1 flex">
+        <div className="flex-1 flex min-w-0">
           {weekDays.map((day, dayIndex) => {
             const dayEvents = getEventsForDay(day);
             const isToday = isSameDay(day, new Date());
 
             return (
-              <div key={dayIndex} className="flex-1 border-r">
+              <div key={dayIndex} className="flex-1 border-r min-w-0">
                 {/* Day header */}
                 <div
                   className={`h-12 border-b p-2 text-center ${
