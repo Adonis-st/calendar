@@ -134,7 +134,7 @@ export function EnhancedToolbar({
                 <div className="flex items-center space-x-2">
                   <Grid3X3 className="h-4 w-4" />
                   <span>Month</span>
-                  {isDesktop && (
+                  {isDesktop && view !== "month" && (
                     <span className="text-xs text-muted-foreground">(M)</span>
                   )}
                 </div>
@@ -143,7 +143,7 @@ export function EnhancedToolbar({
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4" />
                   <span>Week</span>
-                  {isDesktop && (
+                  {isDesktop && view !== "week" && (
                     <span className="text-xs text-muted-foreground">(W)</span>
                   )}
                 </div>
@@ -152,7 +152,7 @@ export function EnhancedToolbar({
                 <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4" />
                   <span>Day</span>
-                  {isDesktop && (
+                  {isDesktop && view !== "day" && (
                     <span className="text-xs text-muted-foreground">(D)</span>
                   )}
                 </div>
