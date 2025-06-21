@@ -20,6 +20,7 @@ import { WeekView } from "@/components/WeekView";
 import { DayView } from "@/components/DayView";
 import { EventModal } from "@/components/EventModal";
 import { SidebarMiniCalendar } from "@/components/SidebarMiniCalendar";
+import { CellTapHandler } from "@/components/CellTapHandler";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useDesktop } from "@/hooks/useDesktop";
 
@@ -36,7 +37,7 @@ const EVENT_COLORS = [
 
 export function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [view, setView] = useState<CalendarView>("month");
   const [events, setEvents] = useState<CalendarEvent[]>([
     {
@@ -65,6 +66,10 @@ export function Calendar() {
     null
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clickedCellPosition, setClickedCellPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const isDesktop = useDesktop();
 
@@ -155,10 +160,27 @@ export function Calendar() {
     setSelectedEvent(null);
   };
 
-  const deleteEvent = (eventId: string) => {
-    setEvents(events.filter((event) => event.id !== eventId));
+  const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
+    setClickedCellPosition(null);
+  };
+
+  const handleSaveEvent = (event: CalendarEvent) => {
+    if (event.id) {
+      // Update existing event
+      setEvents((prev) => prev.map((e) => (e.id === event.id ? event : e)));
+    } else {
+      // Add new event
+      const newEvent = { ...event, id: Date.now().toString() };
+      setEvents((prev) => [...prev, newEvent]);
+    }
+    handleCloseModal();
+  };
+
+  const deleteEvent = (eventId: string) => {
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    handleCloseModal();
   };
 
   const handleEventClick = (event: CalendarEvent) => {
@@ -166,13 +188,22 @@ export function Calendar() {
     setIsModalOpen(true);
   };
 
-  const handleCellClick = (date: Date) => {
-    setCurrentDate(date);
+  const handleCellTap = (
+    date: Date,
+    event?: CalendarEvent | null,
+    clickEvent?: React.MouseEvent
+  ) => {
     setSelectedDate(date);
-    if (view === "month") {
-      setView("day");
-    }
+    setSelectedEvent(event || null);
     setIsModalOpen(true);
+
+    if (clickEvent && isDesktop) {
+      const position = {
+        x: clickEvent.clientX,
+        y: clickEvent.clientY,
+      };
+      setClickedCellPosition(position);
+    }
   };
 
   const handleEventDrop = (eventId: string, newStart: Date, newEnd: Date) => {
@@ -203,7 +234,7 @@ export function Calendar() {
             currentDate={currentDate}
             events={events}
             onEventClick={handleEventClick}
-            onCellClick={handleCellClick}
+            onCellClick={handleCellTap}
           />
         );
       case "week":
@@ -214,6 +245,7 @@ export function Calendar() {
             onEventClick={handleEventClick}
             onEventDrop={handleEventDrop}
             onEventResize={handleEventResize}
+            onCellClick={handleCellTap}
           />
         );
       case "day":
@@ -224,6 +256,7 @@ export function Calendar() {
             onEventClick={handleEventClick}
             onEventDrop={handleEventDrop}
             onEventResize={handleEventResize}
+            onCellClick={handleCellTap}
           />
         );
       default:
@@ -257,17 +290,15 @@ export function Calendar() {
           isDesktop={isDesktop}
         />
         <div className="flex-1 overflow-hidden p-4">{renderView()}</div>
-        <EventModal
+        <CellTapHandler
           isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedEvent(null);
-          }}
+          onClose={handleCloseModal}
           event={selectedEvent}
-          onSave={selectedEvent ? updateEvent : addEvent}
-          onDelete={selectedEvent ? deleteEvent : undefined}
-          currentDate={currentDate}
+          onSave={handleSaveEvent}
+          onDelete={deleteEvent}
+          currentDate={selectedDate}
           view={view}
+          clickedPosition={clickedCellPosition}
         />
       </div>
     </div>

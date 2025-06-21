@@ -18,7 +18,11 @@ interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
-  onCellClick: (date: Date) => void;
+  onCellClick: (
+    date: Date,
+    event?: CalendarEvent | null,
+    clickEvent?: React.MouseEvent
+  ) => void;
 }
 
 export function MonthView({
@@ -41,6 +45,15 @@ export function MonthView({
   };
 
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const handleCellClick = (date: Date, e: React.MouseEvent) => {
+    onCellClick(date, undefined, e);
+  };
+
+  const handleEventClick = (event: CalendarEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEventClick(event);
+  };
 
   return (
     <div className="h-full flex flex-col max-w-full">
@@ -69,7 +82,7 @@ export function MonthView({
               className={`border-r border-b border-gray-200 p-2 min-h-[120px] cursor-pointer hover:bg-gray-50 transition-colors ${
                 !isCurrentMonth ? "bg-gray-50 text-gray-400" : ""
               }`}
-              onClick={() => onCellClick(day)}
+              onClick={(e) => handleCellClick(day, e)}
             >
               <div className="flex items-center justify-between mb-1">
                 <span
@@ -92,10 +105,7 @@ export function MonthView({
                       backgroundColor: event.color + "20",
                       color: event.color,
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEventClick(event);
-                    }}
+                    onClick={(e) => handleEventClick(event, e)}
                   >
                     {format(event.start, "HH:mm")} {event.title}
                   </div>

@@ -33,6 +33,11 @@ interface WeekViewProps {
   onEventClick: (event: CalendarEvent) => void;
   onEventDrop: (eventId: string, newStart: Date, newEnd: Date) => void;
   onEventResize?: (eventId: string, newStart: Date, newEnd: Date) => void;
+  onCellClick: (
+    date: Date,
+    event?: CalendarEvent | null,
+    clickEvent?: React.MouseEvent
+  ) => void;
 }
 
 // Draggable Event Component
@@ -124,10 +129,12 @@ function DroppableTimeSlot({
   day,
   hour,
   children,
+  onClick,
 }: {
   day: Date;
   hour: number;
   children: React.ReactNode;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `${day.toISOString()}-${hour}`,
@@ -141,9 +148,10 @@ function DroppableTimeSlot({
   return (
     <div
       ref={setNodeRef}
-      className={`h-15 border-b border-gray-100 relative ${
+      className={`h-15 border-b border-gray-100 relative touch-manipulation cursor-pointer ${
         isOver ? "bg-blue-50" : ""
-      } touch-manipulation`}
+      }`}
+      onClick={onClick}
     >
       {children}
     </div>
@@ -156,6 +164,7 @@ export function WeekView({
   onEventClick,
   onEventDrop,
   onEventResize,
+  onCellClick,
 }: WeekViewProps) {
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -251,6 +260,14 @@ export function WeekView({
     return (minutes / 60) * 60; // 60px per hour
   };
 
+  const handleCellClick = (date: Date, e: React.MouseEvent) => {
+    onCellClick(date, undefined, e);
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    onEventClick(event);
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -304,6 +321,7 @@ export function WeekView({
                       key={timeIndex}
                       day={day}
                       hour={time.getHours()}
+                      onClick={(e) => handleCellClick(day, e)}
                     >
                       {/* Current time indicator */}
                       {isToday && isSameHour(time, currentTime) && (
@@ -321,7 +339,7 @@ export function WeekView({
                       key={dayEvent.event.id}
                       event={dayEvent.event}
                       dayEvent={dayEvent}
-                      onClick={() => onEventClick(dayEvent.event)}
+                      onClick={() => handleEventClick(dayEvent.event)}
                       onResize={onEventResize}
                     />
                   ))}

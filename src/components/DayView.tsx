@@ -30,6 +30,11 @@ interface DayViewProps {
   onEventClick: (event: CalendarEvent) => void;
   onEventDrop: (eventId: string, newStart: Date, newEnd: Date) => void;
   onEventResize?: (eventId: string, newStart: Date, newEnd: Date) => void;
+  onCellClick: (
+    date: Date,
+    event?: CalendarEvent | null,
+    clickEvent?: React.MouseEvent
+  ) => void;
 }
 
 // Draggable Event Component
@@ -120,9 +125,11 @@ function DraggableEvent({
 function DroppableTimeSlot({
   hour,
   children,
+  onClick,
 }: {
   hour: number;
   children: React.ReactNode;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${hour}`,
@@ -135,9 +142,10 @@ function DroppableTimeSlot({
   return (
     <div
       ref={setNodeRef}
-      className={`h-15 border-b border-gray-100 relative ${
+      className={`h-15 border-b border-gray-100 relative touch-manipulation cursor-pointer ${
         isOver ? "bg-blue-50" : ""
-      } touch-manipulation`}
+      }`}
+      onClick={onClick}
     >
       {children}
     </div>
@@ -150,6 +158,7 @@ export function DayView({
   onEventClick,
   onEventDrop,
   onEventResize,
+  onCellClick,
 }: DayViewProps) {
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -239,6 +248,14 @@ export function DayView({
 
   const isToday = isSameDay(currentDate, new Date());
 
+  const handleCellClick = (date: Date, e: React.MouseEvent) => {
+    onCellClick(date, undefined, e);
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    onEventClick(event);
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -265,7 +282,11 @@ export function DayView({
         <div className="flex-1 relative min-w-0">
           {/* Time slots */}
           {timeSlots.map((time, timeIndex) => (
-            <DroppableTimeSlot key={timeIndex} hour={time.getHours()}>
+            <DroppableTimeSlot
+              key={timeIndex}
+              hour={time.getHours()}
+              onClick={(e) => handleCellClick(time, e)}
+            >
               {/* Current time indicator */}
               {isToday && isSameHour(time, currentTime) && (
                 <div
@@ -282,7 +303,7 @@ export function DayView({
               key={dayEvent.event.id}
               event={dayEvent.event}
               dayEvent={dayEvent}
-              onClick={() => onEventClick(dayEvent.event)}
+              onClick={() => handleEventClick(dayEvent.event)}
               onResize={onEventResize}
             />
           ))}

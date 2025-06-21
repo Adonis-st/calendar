@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 export function useDesktop() {
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true); // Start with true to avoid hydration issues
 
   useEffect(() => {
     const checkDesktop = () => {
